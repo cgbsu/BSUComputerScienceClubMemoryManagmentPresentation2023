@@ -1,0 +1,2782 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Memory Managment: Less Frustration, Models, Ownership, and More!
+
+---
+
+# Stack vs. Heap: Scope
+
+---
+
+# Scope 
+
+## Python Example: 
+
+```python
+def MyFunction(): 
+	a = 10 # 'a' is created ON THE STACK in this indent block's 
+		   # scope when 'MyFunction' is run
+
+
+
+# 'a' was created in the scope of 'MyFunction', 
+# it can not be referenced outside
+# of 'MyFunction''s indent block
+# ...
+a += 1 # Error 'a' referenced before assignment
+```
+
+- We will be using langauges with C-like syntax for the rest of this presentaiton
+
+---
+
+# Scope
+
+## Equivlent Java Example (C-like Syntax): 
+
+```java
+void MyFunction()
+{
+
+	int a = 10; // 'a' is created ON THE STACK in 'MyFunction''s 
+			    // scope (in between the brackets)
+
+
+} // 'a' is destroyed at the end of scope
+
+
+
+
+// ... later
+
+a += 10; // Error: What is 'a'?
+
+```
+
+---
+
+# Scope: Excecizes[0]
+
+- Lets play: Does it compile?!
+
+```java
+void MyFunction()
+{
+	int a = 10;
+	if(a > 5)
+	{
+		System.out.println(a);
+	}
+	a += 8;
+}
+```
+
+---
+
+# Scope: Excecizes[0]
+
+- Lets play: Does it compile?!
+
+```java
+void MyFunction()
+{
+
+	int a = 10; // Begin 'a's scope
+	
+	if(a > 5)
+	{
+	
+		System.out.println(a); // Fine, inside 'a's scope
+		
+	}
+	
+	a += 8; // Fine, inside of 'a's scope
+	
+} // End 'a's scope, 'a' destroyed here
+```
+
+- If you guessed _**YES**_, you are CORRECT! 🌟
+
+---
+
+# Scope: Excecizes[1]
+
+- Lets play: Does it compile?!
+
+```java
+void MyFunction()
+{
+	int a = 10;
+	if(a > 5)
+	{
+		int b = 42;
+		System.out.println(a + b);
+	}
+	a += 8;
+}
+```
+
+---
+
+# Scope: Excecizes[1]
+
+- Lets play: Does it compile?!
+
+```java
+void MyFunction()
+{
+
+	int a = 10; // Begin 'a's scope
+	
+	if(a > 5)
+	{
+	
+		int b = 42; // Begin 'b's scope
+		
+		System.out.println(a + b); // Fine, inside 'a's and 'b's scope
+		
+	} // End 'b's scope, 'b' destroyed here
+	
+	a += 8; // Fine, inside 'a's scope
+	
+} // End 'a's scope, 'a' destroyed here
+```
+
+- If you guessed _**YES**_, you are CORRECT! 🌟
+
+---
+
+# Scope: Excecizes[2]
+
+- Lets play: Does it compile?!
+
+```java
+void MyFunction()
+{
+	int a = 10;
+	if(a > 5)
+	{
+		int b = 42;
+		System.out.println(a + b);
+	}
+	a += 8;
+	a += b;
+}
+```
+
+---
+
+# Scope: Excecizes[2]
+
+- Lets play: Does it compile?!
+
+```java
+void MyFunction()
+{
+
+	int a = 10; // Begin 'a's scope
+	
+	if(a > 5)
+	{
+	
+		int b = 42; // Begin 'b's scope
+		
+		System.out.println(a + b); // Fine
+		
+	} // End of 'b's scope, 'b' destroyed here
+	
+	a += 8; // Fine
+	
+	a += b; // ERROR: What is 'b'?! ('b' destroyed before we got here)
+	
+} // 'a' destroyed here
+```
+- If you guessed _**NO**_, you are CORRECT! 🌟
+
+---
+
+# One More Thing About Scope (For Now)
+
+---
+
+# One More Thing About Scope (For Now)
+
+## Function parameters have scope!
+
+```java
+void MyFunction(int myParameter)
+{ // Begining of 'myParameter's scope
+
+
+	int myInt = 42; // Begining of 'myInt's scope
+
+	System.out.println(myInt + myParameter);
+
+} // End of 'myParameter's scope and 'myInt's scope
+```
+
+---
+# Getting into the weeds: Pass-By-Reference vs. Pass-By-Value
+## An important distinction!
+
+---
+# Lets start with Pass-By-Value
+
+---
+# Pass By Value: 
+
+Suppose I have a function like this: 
+```java
+void MyFunction(int myParameter)
+{
+	myParameter += 1;
+}
+```
+
+Later I write: 
+
+```java
+int myValue = 20;
+MyFunction(myValue);
+System.out.println(myValue);
+```
+
+- Supposing this code compiles, what is the output?
+
+---
+# Pass By Value: 
+
+Suppose I have a function like this: 
+```java
+void MyFunction(int myParameter)
+{
+	myParameter += 1;
+}
+```
+
+Later I write: 
+
+```java
+int myValue = 20;
+MyFunction(myValue);
+System.out.println(myValue);
+```
+
+- Supposing this code compiles, what is the _**output**_?
+- **Answer:** _`20`_
+
+---
+# Pass By Value: 
+
+Suppose I have a function like this: 
+```java
+void MyFunction(int myParameter)
+{
+	myParameter += 1;
+}
+```
+
+Later I write: 
+
+```java
+int myValue = 20;
+MyFunction(myValue);
+System.out.println(myValue);
+```
+
+- Supposing this code compiles, what is the _**output**_?
+- **Answer:** _`20`_
+- Did you say: _WAT?!_
+
+---
+# The value does not change?
+```java
+int myValue = 20;
+MyFunction(myValue);
+System.out.println(myValue); // 20
+```
+---
+# Why is that?
+
+--
+- Interactive examples here: https://godbolt.org/z/9Eeqcqjc8
+- "Globals vs. Parameters 0" on the list
+
+---
+# Pass By Value: 
+
+```java
+void MyFunction(int myParameter)
+{
+	myParameter += 1;
+} // Recall, myParameter is destroyed here
+```
+
+Later I write: 
+
+```java
+int myValue = 20;
+MyFunction(myValue);
+System.out.println(myValue); // Is 'myValue' 'myParameter'?
+```
+
+---
+# Pass By Value: 
+
+Lets rewrite the code
+```java
+static int myParameter; // Global variable
+void MyFunction()
+{
+	myParameter += 1;
+}
+```
+
+Later you write: 
+
+```java
+int myValue = 20;
+
+myParameter = myValue; // Not present before
+MyFunction(); // Replacing MyFunction(myValue);
+
+System.out.println(myValue);
+```
+
+- Supposing the example compiles, _**now**_ what do you think the _**output**_ is?
+
+---
+# Pass By Value: 
+
+Lets rewrite the code
+```java
+static int myParameter; // Global variable
+void MyFunction()
+{
+	myParameter += 1;
+}
+```
+
+Later you write: 
+
+```java
+int myValue = 20;
+
+myParameter = myValue; // Not present before
+MyFunction(); // Replacing MyFunction(myValue);
+
+System.out.println(myValue);
+```
+
+- Supposing the example compiles, _**now**_ what do you think the _**output**_ is?
+- Answer: _`20`_ again
+
+
+---
+# Next Example: 
+- https://godbolt.org/z/qnzxoaxed
+- "Globals vs. Parameters 1" on the examples list
+
+---
+# Pass By Value: 
+
+This: 
+```java
+void AddOneParameter(int myParameter)
+{
+	myParameter += 1;
+}
+```
+Is basically equal to this: 
+```java
+static int myParameter; // Global variable
+void AddOneGlobal()
+{
+	myParameter += 1;
+}
+```
+
+***_If_*** You change the value of _`myParameter`_ each time before you call _`AddOneGlobal`_
+---
+# Pass By Value
+...basically equal to this: 
+```java
+static int myParameter; // Global variable
+void AddOneGlobal()
+{
+	myParameter += 1;
+}
+```
+***_If_*** You change the value of _`myParameter`_ each time before you call _`AddOneGlobal`_
+
+
+i.e
+```java
+int myValue = 41;
+myParameter = myValue;
+AddOneGlobal();
+System.out.println(myParameter); // Prints 42
+myParameter = 19;
+AddOneGlobal();
+System.out.println(myParameter); // Prints 20
+```
+---
+# Pass By Value: 
+
+This: 
+```java
+void AddOneParameter(int myParameter)
+{
+	myParameter += 1;
+}
+```
+Is basically equal to this: 
+```java
+static int myParameter; // Global variable
+void AddOneGlobal()
+{
+	myParameter += 1;
+}
+```
+Notice either way you call either version of _AddOne_ _myValue_ never changes!
+---
+# Pass By Value: 
+Notice either way you call either version of _AddOne_ _myValue_ never changes!
+```java
+void AddOneParameter(int myParameter)
+{
+	myParameter += 1;
+}
+//...
+int myValue = 41;
+AddOneParameter(myValue);
+System.out.println(myValue); // Prints 41
+```
+```java
+static int myParameter; // Global variable
+void AddOneGlobal()
+{
+	myParameter += 1;
+}
+//...
+int myValue = 41;
+myParameter = myValue;
+AddOneGlobal();
+System.out.println(myValue); // Prints 41
+```
+--
+- **_Why_**?
+
+---
+# Pass By Value
+- Pass By Value means that values are _copied_, _duplicated_.
+--
+
+- More than one bit of variable/memory storing the value exists at once!
+--
+
+```java
+void AddOneParameter(int myParameter)
+{
+		myParameter += 1;
+}
+//...
+int myValue = 41;
+AddOneParameter(myValue); // The VALUE of 'myValue' is copied into a 
+							  // temporary variable, 'myParameter'
+System.out.println(myValue); // Prints 41, 'myParameter' is gone, it 
+								 // was a COPY of myValue, not a reference too 
+								 // it, any changes made to 'myParameter' ONLY 
+								 // apply to 'myParameter'
+```
+
+--
+
+|line||myValue||myParameter|
+|-----------------||-------||-----------------|
+|int myValue = 41;||41||*does not exist*|
+|AddOneParameter(myValue);||41||41|
+|myParameter += 1;||41||42|
+|System.out.println(myValue);||41||*does not exist*|
+
+---
+# Pass By Value
+## myValue vs. myParameter, two independant variables!
+|line||myValue||myParameter|
+|-----------------||-------||-----------------|
+|int myValue = 41;||41||*does not exist*|
+|AddOneParameter(myValue);||41||41|
+|myParameter += 1;||41||42|
+|System.out.println(myValue);||41||*does not exist*|
+
+---
+# Next example: 
+- https://godbolt.org/z/hK9xbb6WK 
+- "Parameters 0" on the list of examples
+---
+# Pass By Value: Test Your Knowlege!
+https://godbolt.org/z/hK9xbb6WK 
+
+```java
+void PythagoreanTheorem(int x, int y)
+{
+	x *= x;
+	y *= y;
+	int hypotenuse = x + y;
+	System.out.println(hypotenuse);
+}
+
+//later ...
+
+int x = 10;
+int y = 5;
+
+PythagoreanTheorem(x, y);
+System.out.println(x);
+System.out.println(y);
+```
+
+- What is the _*output*_ of this program (hint: there are 3)?
+--
+
+- Answer: 125, 10, 5 (On seperate lines)
+--
+
+- Remeber _`x`_ outside _`PythagoreanTheorem`_ is not the same _`x`_ inside _`PythagoreanTheorem`_
+
+---
+# Pass By Value: Test Your Knowlege!
+https://godbolt.org/z/hK9xbb6WK 
+```java
+
+void PythagoreanTheorem(int x, int y) {
+	// ...
+}
+
+//later ...
+
+int x = 10;
+int y = 5;
+
+PythagoreanTheorem(x, y);
+System.out.println(x);
+System.out.println(y);
+```
+- Remeber _`x`_ outside _`PythagoreanTheorem`_ is not the same _`x`_ inside _`PythagoreanTheorem`_. 
+--
+
+- Why? 
+--
+
+- Reason 0: At the time _`PythagoreanTheorem`_ is defined, there is no `x` except for the parameter `x`, `PythagoreanTheorem` is not modified retroactivley to include the later variable `x`
+--
+
+- Reason 1: Suppose the later `x` were declared inside another set of brackets at the same level as those from `PythagoreanTheorem`, what would it mean to have both scopes existing in parallel?
+---
+# Pass By Value 
+## The real reason: Modularity and Abstraction
+```java
+void PythagoreanTheorem(int x, int y) {
+	// ...
+}
+```
+--
+
+- When passing by value, the programmer only needs to worry about the variables in scope, they dont have to worry about affecting the rest of the program
+--
+
+- They also do not have to worry about unitnentonally or improperly changing anything else, the rest of the program can continue as if the passed values are the same
+--
+
+- Programmers also do not have to worry about changing the value of variables unexpectantly on other programmers
+--
+
+## Problem
+--
+- How do I get data out of functions?
+
+---
+
+## How do I get data out of functions?
+
+- "Basic Return Values": https://godbolt.org/z/o4sE9r4Tc 
+- "Return Values vs. Globals": https://godbolt.org/z/d9a111bEa
+
+---
+# Pass By Value
+
+This function is great if all I want to do is print a hypotenuse
+
+```java
+void PythagoreanTheorem(int x, int y)
+{
+	x *= x;
+	y *= y;
+	int hypotenuse = x + y;
+	System.out.println(hypotenuse);
+}
+```
+--
+
+But what if I actually want to _use_ the value the hypotenuse
+
+```java
+PythagoreanTheorem(10, 5);
+int vectorMagnitude = Math.sqrt( //... what do I put here ?!?!?!
+```
+---
+"Basic Return Values" https://godbolt.org/z/o4sE9r4Tc
+---
+# Pass By Value
+
+```java
+void PythagoreanTheorem(int x, int y)
+{
+	x *= x;
+	y *= y;
+	int hypotenuse = x + y;
+	System.out.println(hypotenuse);
+}
+```
+
+Lets re-write the function
+
+--
+
+```java
+int PythagoreanTheorem(int x, int y)
+{
+	x *= x;
+	y *= y;
+	int hypotenuse = x + y;
+	return hypotenuse;
+}
+```
+
+- Notice instead of `void` we have `int` indicating the type of data that will be returned from the function
+- Notice the `return` keyword, this copies the value of what is next too it and puts it into a sort of "invisible temporary"
+---
+# Pass By Value
+```java
+int PythagoreanTheorem(int x, int y)
+{
+	x *= x;
+	y *= y;
+	int hypotenuse = x + y;
+	return hypotenuse;
+}
+```
+Sweet! Now I can use it: 
+
+```java
+// myHypotenuse is a copy of the "invisible temporary" "returned"
+// by 'PythagoreanTheorem' which copied the value of 'hypotenuse'
+int myHypotenuse = PythagoreanTheorem(10, 5); 
+int vectorMagnitude = Math.sqrt(myHypotenuse); // Ah', much better!
+```
+--
+```java
+// 'myHypotenuse' was a copy of a value, so we know for sure, 
+// that it is not affected by this later call to PythagoreanTheorem
+int myOtherHypotenuse = PythagoreanTheorem(42, 21); 
+```
+---
+# Pass By Value
+
+You can discard a return value, but, for a well-written function, this implies that some part of the function is not actually being used
+```java
+PythagoreanTheorem(10, 5); // So long and thanks for all the fish! 
+
+// (no effect on the rest of the program, except warming up the cpu a bit)
+```
+---
+# Pass By Value
+
+- Reinforcing the concept: lets re-write this: 
+- "Return Values vs. Globals": https://godbolt.org/z/d9a111bEa
+```java
+int PythagoreanTheorem(int x, int y)
+{
+	x *= x;
+	y *= y;
+	int hypotenuse = x + y;
+	return hypotenuse;
+}
+```
+--
+```java
+static int uglyGlobalHypotenuse;
+void PythagoreanTheoremGlobal(int x, int y)
+{
+	x *= x;
+	y *= y;
+	uglyGlobalHypotenuse = x + y;
+}
+```
+- Notice the second function is `void`
+---
+# Pass By Value 
+```java
+static int uglyGlobalHypotenuse;
+void PythagoreanTheoremGlobal(int x, int y)
+{
+	x *= x;
+	y *= y;
+	uglyGlobalHypotenuse = x + y;
+}
+```
+Lets use the re-written function
+```java
+PythagoreanTheoremGlobal(10, 5);
+int myHypotenuse0 = uglyGlobalHypotenuse;
+// ^^ Basically the same as: 
+int myHypotenuse1 = PythagoreanTheorem(10, 5); 
+```
+- Issue: If you are writing hundreds of functions, you need to keep track of the name of each global return value, it would become quite copius
+- Issue: Also someone could change with a return value when you expect it to be the return value of a function
+- Issue: The return value variable is not nessisiarly tied with a call to its companion function
+--
+
+- Dont do this
+
+
+---
+# Next Example:
+- "Return Values Excersizes": https://godbolt.org/z/hdfzr5vrh
+---
+
+# Pass By Value: Excecizes
+```java
+int Square(int x)
+{
+	x *= x;
+	return x;
+}
+int Hypotenuse(int x, int y) {
+	return Square(x) + Square(y);
+}
+// float is a decimal number type
+float Magnitude(int x, int y) {
+	return Math.sqrt(Hypotenuse(x, y));
+}
+//later... 
+int x = 4;
+int y = 3;
+int myMagnitude = Magnitude(x, y);
+System.out.println(x);
+System.out.println(y);
+System.out.println(myMagnitude);
+```
+- What is the _**output**_ of this program (all 3) assuming it compiles?
+--
+ **_Answers:_** 4, 3, 5 (on seperate lines without commas)
+--
+
+ - Feel free to follow along with your own code!
+---
+# By The Way: 
+If you want to pose questions in the form of code, send me a share link too your code on godbolt.org
+
+---
+# Congradulations
+## By learning about pass-by-value you also just learned about a key concept: the Stack!
+--
+
+- The stack technichally is like a stack data structure, when arguments are passed to a function, copies of the values to be passed too te function are put on top of the stack, when new values are created, they are also put on top of the stack, when they reach end of scope, they are removed, usually in reverse order (LIFO: Last In First Out)
+
+--
+
+```java
+void MyFunction(int a, int b) {
+	int c = a * b + (a - b);
+}
+// ...
+int a = 1;
+int b = 2;
+MyFunction(a, b);
+```
+--
+
+- Real quick: What are the values of `a`, and `b` at the end?
+
+--
+
+- Answer: 1 and 2 respectivley
+
+---
+### The Stack
+
+"The Stack" is like a stack data structure, copies of function arguments are put on top of the stack, when new values are created, they are also put on top of the stack, when either reach end of scope, they are removed in reverse order
+
+```java
+void MyFunction(int a, int b) {
+	int c = a * b + (a - b); // Line 3
+}
+// ... Start
+{
+	int a = 4; // Line 0
+	int b = 5; // Line 1
+	MyFunction(a, b); // Line 2
+	// Line 4
+}
+// Line 5
+```
+
+|Start|Line 0|Line 1|Line2|Line 3|Line 4|Line 5|
+|:-----|:------:|:-------:|:--------:|:--------:|:--------:|:--------:|:--------:|
+| | | | |19| | | | |
+| | | |5|5| | |
+| | | |4|4| | |
+| | |5|5|5|5| |
+| |4|4|4|4|4| |
+
+
+---
+# Lets Get a Bit More Technichal: Allocate
+## Allocate: 
+- For our purposes, allocate can be thought of "creating" or reserving memory.
+- For example: If I have 1 Gigibyte of memory, I may set aside (reserve) 4 bytes (32 bits) for an integer when I type: `int myInt = 42;`
+- Memory is not actually "created" or "destroyed", but from the perspective of the programmer, often it can be thought of this way.
+
+---
+## Preamble: 
+	- Scope ✅
+	- Pass By Value ✅
+	- The Stack (Requires: Scope, Pass By Value) ✅
+	- The Problem(s) With The Stack/Pass By Value
+	- Pass by Reference
+	- Reference and Pointer Types
+	- The Heap Dynamic Memory Allocation (Requires Pass By Reference, and Ref/Pointer Types)
+	- The Problem of The Heap
+
+---
+## Memory Models and How To Use Them, and Why They Exist: 
+	- Manual Memory Management
+	- Problems with Manual Memory Managment (C, Zig)
+	- Garbage Collection (Java, Go, Python)
+	- GC Gotchya's
+	- Ownership and Read Write Permissions
+	- Shallow and Deep Copy
+	- Resource Acquisition Is Initialization (RAII) (C++)
+	- Ownership Based Resource Managment (OBRM) (Rust)
+	- Reference Counting (C++, Switft, Rust)
+	- A note on programming languages
+
+---
+## Advanced Topics: 
+### Generalizing to Other Resources: 
+	- Threads, fearless lock-free concurrency!
+	- Sockets
+	- Files
+### Allocators and Performence: 
+	- Contiguous Memory and why it Matters
+	- CPU Caching Notes
+	- Types of Allocators
+	- Heterogenous Computing
+
+---
+# Lets get moving 😉
+
+---
+
+# We Could Stop Here: 
+- Ignoring performence constraints, technichally, we dont _need_ anything other than pass-by-value
+- An entire paradigm/class of programming languages exist that use only Read-Only Pass-By-Value Stack Only _Memory Model_, these are called _Functional_ programming langauges
+- Examples: Elixir, Haskell, Common LISP, Closure, OCamel
+- In many languages can be used as functional languages, including C, C++, Java (kinda)
+- Functinal Languages dont typically use loops, because loops require some value to change in-place to control the loop, functional languages tend too use **_read-only_**, immutable values, so recursion is used instead
+- Here I will introduce the `const` keyword from C, it means a value can only be read, but not written too (past when it is initialized)
+
+---
+
+# Example:
+###### Functinal Languages dont typically use loops, because loops require some value to change in-place to control the loop, functional languages tend too use **_read-only_**, immutable values, so recursion is used instead
+###### Here I will introduce the `const` keyword from C, it means a value can only be read, but not written too (past when it is initialized)
+```c
+const int Fibonacci(const int n)
+{
+	if(n == 1)
+		return 1;
+	else if(n == 0)
+		return 0;
+	else
+	{
+		// n is not changed, a new temporary values equal to n - 1 
+		// and n - 2 respectivley are created and passed to Fibonacci
+		return Fibonacci(n - 1) + Fibonacci(n - 2);
+	}
+}
+```
+
+---
+
+# This ain't a recursion/functional programming slideshow
+
+---
+
+# We Could Stop Here: 
+- Ignoring performence constraints, technichally, we dont _need_ anything other than pass-by-value
+- An entire paradigm/class of programming languages exist that use only Read-Only Pass-By-Value Stack Only _Memory Model_, these are called _Functional_ programming langauges
+- Examples: Elixir, Haskell, Common LISP, Closure, OCamel
+- In many languages can be used as functional languages, including C, C++, Java (kinda)
+- Functinal Languages dont typically use loops, because loops require some value to change in-place to control the loop, functional languages tend too use **_read-only_**, immutable values, so recursion is used instead
+- But there are motivations to Pass By Reference
+
+---
+# Why Pass By Reference: 
+
+## Performence
+- Suppose I have an array of 1 million values, and I need to pass it to 3 different functions, if I am using pass-by-value, it must copy the entire array each time (without compiler optimizations), then I also must copy the array to return the array each time.
+- If this application needs to perform in any reasonable amount of time this is a bad idea, especially for an application like a game, which may need to run at at least 60 Frames Per Second, that would be 180 * 1 million operations at least each second just for this.
+## Foreshadowing
+- Later we will see that we also often need Pass By Reference for dynaimically sized data (arrays with the lengths we want)
+
+---
+
+# Pass By Reference: Java Reference Types
+
+- In Java, any built-in type that starts with a lower case letter, except arrays, will pass by value: 
+
+	- This means basic types, like `int`, `float` (decimal number), `double` (better decimal number), `boolean` (true or false), and `char` (single character, but NOT a string)
+
+	- These are often called _Primitive Types_
+--
+
+
+
+- In Java, any built-in or standard library (class type) type that starts with an upper case letter, as well as arrays is a _Pass By Value_ type: 
+
+--
+
+	- One of the most familiar of these types are `String`'s (including string literals e.g `"ABCDEFG"`) 
+
+--
+
+	- Another familiar _Reference Type_ type is any array, even an array of a _Primitive Type_ like `int` (e.g `new int[10]` or `int[]`)
+
+--
+
+	- Other examples may be `Scanner, Integer, ArrayList, Exception, File, BufferedReader`, and any `class` you define
+
+---
+# Next Example: 
+- Pass By Reference in Java 0: https://godbolt.org/z/Y6TMjqqEP
+---
+## Pass By Reference: An Example: 
+```java
+void MyFunction(int[] myIntegers) {
+	myIntegers[myIntegers.length / 2] = 42;
+}
+//Later ...
+int[] data = new int[10]; // Note the 'new' keyword... we'll come back too that ;)
+for(int ii = 0; ii < data.length; ++ii) {
+	data[ii] = ii; // The loop creates a list of integers 0 - 9
+}
+MyFunction(data);
+for(int ii = 0; ii < data.length; ++ii) {
+	System.out.println(data[ii]);
+} // Pass By Reference in Java 0: https://godbolt.org/z/Y6TMjqqEP
+```
+- What is the _**output**_ of this program?
+--
+
+- Answer: 0, 1, 2, 3, 4, 42, 6, 7, 8, 9
+--
+
+- Why?
+--
+: Remember, Java array's, even of primitive types, are _class types_, and are thus Pass By Reference
+--
+
+- This actually not exactly true... you only directly interact with class types when creating them in Java...
+--
+
+- Any variable declared with a class type is actually a _reference_. The data for the class itself is _allocated_ with the `new` keyword.
+--
+
+- In order to use the data created with `new` we take advantage of the fact that it **_must_** exist somewhere in memory, and that location has a _Memory Address_
+
+---
+- Pass By Reference in Java 0: https://godbolt.org/z/Y6TMjqqEP
+```java
+void MyFunction(int[] myIntegers) {
+	myIntegers[myIntegers.length / 2] = 42;
+}
+//Later ...
+int[] data = new int[10]; // Note the 'new' keyword... we'll come back too that ;)
+for(int ii = 0; ii < data.length; ++ii) {
+	data[ii] = ii; // The loop creates a list of integers 0 - 9
+}
+MyFunction(data);
+for(int ii = 0; ii < data.length; ++ii) {
+	System.out.println(data[ii]);
+}
+```
+- Output: 0, 1, 2, 3, 4, 42, 6, 7, 8, 9
+- Any variable declared with a class type is actually a _reference_. The data for the class itself is _allocated_ with the `new` keyword.
+- In order to use the data created with `new` we take advantage of the fact that it **_must_** exist somewhere in memory, and that location has a _Memory Address_
+- Java then allows us to use the `.` operator (or in the special case of arrays `[]`) on the reference, then "relays" the instruction to the data in memory
+
+---
+# We are getting a bit ahead of ourselves...
+--
+
+## Lets take a step back
+
+---
+# Taking a Step Back
+- In Java, the concept of reference types is nessiarily connected to dynamic memory allocation, the heap, class types, garbage collection, etc.
+--
+
+- Its a bit confusing as well, because there is not much **_explicit_** syntax to differentiate reference types from value types
+--
+
+- This is not the case in C, therefore, we will continue in C to teach these concepts (though much of the code is similar to Java).
+--
+
+- Simple Pointers in C 0: https://godbolt.org/z/qfcjacWq8
+
+---
+# Pointer's In C
+- Simple Pointers in C 0: https://godbolt.org/z/qfcjacWq8
+- Imagine the memory in your computer like a grid.
+	- Each box in the grid has a number and contains 1 byte
+
+![alt text](Diagrams/Memory0.drawio.svg)
+
+--
+- Pointers are integers that refer to one of these boxes (technichality... in most implementations)
+
+---
+# Example: C Pointer
+Simple Pointers in C 0: https://godbolt.org/z/qfcjacWq8
+```c
+int myInteger = 10;
+int* myPointer = &myInteger;
+```
+
+--
+
+- `int*` means a pointer to `int`, the pointer itself is a number, but that number is the address of a byte in memory. The compiler does not nesssiarily know *what* a pointer contains unless you tell it. `int` is just information *for the compiler*
+--
+
+- `&` can be read as "address of"
+--
+
+- `int* myPointer = &myInteger;` can be read as "Create a pointer to an integer, called myPointer, and assign it to the address of myInteger (an `int`)"
+--
+
+- **NOTE**: `int* myPointer` **_is different_** than `*myPointer` by itself the `*` in `int*` denotes the **type**, where the `*` in `*myPointer` means "dereference", **_1 character 2 meanings_**
+
+---
+# Example: C Pointer
+- Simple Pointers in C 0: https://godbolt.org/z/qfcjacWq8
+- But what do I do with a pointer?
+```c
+int myInteger = 10;
+int* myPointer = &myInteger;
+// myPointer += 10 adds 10 to the pointer, or rather, 
+// the address myPointer is pointing too, doing nothing to myInteger
+// Can I do anything to myInteger using the myPointer?
+```
+- We need the "de-reference" operator `*`
+
+```c
+*myPointer += 10;
+```
+- `*` tells the program, "go too the address contained by myPointer, and then do whatever is on the right too it (in this case += 10)"
+--
+
+- The value of `myInteger` is now 20!!
+- `*myPointer` will also give 20
+
+
+---
+# Pointer Question
+
+```c
+int x = 10;
+int* p = &x;
+*p += 32;
+```
+
+What is the value of `x`?
+
+--
+
+- Answer: _**42**_! (The Meaning of Life The Universe and Everything!)
+
+---
+# Another Pointer Question
+
+```c
+int xbox = 50;
+int* playStation = &xbox;
+int gameCube = *playStation;
+gameCube += 50;
+```
+
+What is the value of `xbox`?
+
+--
+
+- Answer: _50_
+
+--
+, `playStation` referes to `xbox`, but `gameCube` copies the value pointed-to/de-referenced by `playStation`, so it copies the value  of `xbox`, then adds 50 too itself, so `gameCube` is 100, while `xbox` remains unchanged (50).
+- C Pointer Excersize 0: https://godbolt.org/z/aWb6bv3xs
+
+---
+# Do you understand pointer basics?
+## Questions?
+--
+
+- Lets resume
+- Remeber you can try stuff on godbolt, and you can send questions to me with godbolt + discord
+- Simple Pointers in C 0: https://godbolt.org/z/qfcjacWq8
+- C Pointer Excersize 0: https://godbolt.org/z/aWb6bv3xs
+
+---
+# Next Example: 
+- Simple Pointers in C 1: https://godbolt.org/z/xzT5esTvx
+
+---
+# Passing By Reference In C
+Simple Pointers in C 1: https://godbolt.org/z/xzT5esTvx
+```c
+void ChangeData(int* someNumber) {
+    *someNumber = 42;
+}
+// Later ...
+int theAnswer = 0;
+printf("theAnswer Before: %i\n", theAnswer); // 0
+ChangeData(&theAnswer);
+printf("theAnswer After: %i\n", theAnswer); // 42
+```
+--
+It is as if:
+```c
+int* someGlobalNumber; // Like before
+void ChangeDataGlobal() {
+    *someGlobalNumber = 42;
+}
+//...
+someGlobalNumber = &theAnswer; 
+printf("theAnswer Before: %i\n", theAnswer); // 0
+ChangeDataGlobal(); // *someGlobalNumber = 42; like before!
+printf("theAnswer After: %i\n", theAnswer); // 42
+```
+---
+# Look at this graph
+```c
+void ChangeData(int* someNumber) {
+    *someNumber = 42;
+}
+// Later ...
+int theAnswer = 0;
+printf("theAnswer Before: %i\n", theAnswer); // 0
+ChangeData(&theAnswer);
+printf("theAnswer After: %i\n", theAnswer); // 42
+```
+![alt text](Diagrams/Pointers2.drawio.svg)
+--
+
+[graph](https://www.youtube.com/watch?v=sIlNIVXpIns)
+
+---
+# To See The Global Example: 
+
+- Simple Pointers in C Global vs. Parameter 0: https://godbolt.org/z/j8E97PbE3
+
+---
+# Recall "Pointers are just integers"
+- Pointers are variables like any other variable
+- Pointers _themselves_ are passed by value, but because they refer to something else (A), the thing they point to (A) is Passed by Reference when you pass a pointer too it (A) into a function
+
+```c
+void ChangeData(int* someNumber) {
+    *someNumber = 42; // Line 2
+}
+// Later ...
+{
+	int theAnswer = 0; // Line 0
+	printf("theAnswer Before: %i\n", theAnswer); // 0
+	ChangeData(&theAnswer); // Line 1
+	printf("theAnswer After: %i\n", theAnswer); // 42
+	// Line 3
+}
+// Line 4
+```
+|VAR|Line 0||Line 1||Line 2||Line 3||Line 4|
+|:-----:||:-----:||:-----:||:-----:||:-----:||:-----:|
+|someNumber| ||&theAnswer||&theAnswer|| || |
+|theAnswer|0||0||42||42|| |
+---
+# One More Simple Pointer Example: 
+- Simple Pointers in C 2: https://godbolt.org/z/nYnbe3Mzj
+
+---
+# Mixing Pass By Reference and Pass By Value
+```c
+void ChangeData(int* someNumber, int multiplier) {
+    multiplier += 1;
+    *someNumber += 2 * multiplier;
+}
+// Later...
+
+int myData[10];
+for(int ii = 0; ii < 10; ++ii) {
+    myData[ii] = ii; // Create an array 0 - 9
+}
+int* fifthElement = &myData[5];
+printf("*fifthElement Before: %i\n", *fifthElement);
+printf("myData Before: ", myData); // NOTE: You cant actually print arrays like this in C
+ChangeData(fifthElement, 5);
+printf("\n*fifthElement After: %i\n", *fifthElement);
+printf("myData After: ", myData); // NOTE: You cant actually print arrays like this in C
+```
+- What do you think `myData` and `*fifthElement` are before and after?
+--
+
+```
+*fifthElement Before: 5
+myData Before: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+*fifthElement After: 17
+myData After: 0, 1, 2, 3, 4, 17, 6, 7, 8, 9, 
+```
+
+---
+# Mixing Pass By Reference and Pass By Value
+```c
+void ChangeData(int* someNumber, int multiplier) {
+    multiplier += 1; // Line 3
+    *someNumber += 2 * multiplier; // Line 4
+}
+// Later...
+
+int myData[10]; // Line 0
+for(int ii = 0; ii < 10; ++ii) {
+    myData[ii] = ii; // Create an array 0 - 9
+}
+int* fifthElement = &myData[5]; // Line 1
+ChangeData(fifthElement, 5); // Line 2
+// Line 5
+```
+|VAR||Line 0||Line 1||Line 2||Line 3||Line 4||Line 5||
+|:-----:||:-----:||:-----:||:-----:||:-----:||:-----:||:-----:||:-----:|
+|multiplier|| || ||5||6||6|| ||
+|someNumber|| || ||&myData[5]||&myData[5]||&myData[5]|| ||
+|fifthElement||JUNK||&myData[5]||&myData[5]||&myData[5]||&myData[5]||&myData[5]||
+|myData||JUNK||0 - 9||0 - 9||0-9||0-4, 17, 6-9||0-4, 17, 6-9||
+---
+## Another way to see it
+```c
+void ChangeData(int* someNumber, int multiplier) { multiplier += 1; *someNumber += 2 * multiplier; }
+// Later...
+int myData[10];
+int* fifthElement = &myData[5];
+ChangeData(fifthElement, 5);
+```
+<div style="height:5%">
+</div>
+![alt text](Diagrams/Pointers4.drawio.svg)
+
+---
+# Do you understand passing pointers to functions?
+## Questions on passing pointers to functions?
+- Remeber you can submit questions from godbolt
+
+---
+# This ain't a pointer presentation (exactly)
+This is as far as we will go with pointers in C
+---
+## Preamble: 
+	- Scope ✅
+	- Pass By Value ✅
+	- The Stack (Requires: Scope, Pass By Value) ✅
+	- The Problem(s) With The Stack/Pass By Value ✅
+	- Pass by Reference ✅
+	- Reference and Pointer Types ✅
+	- The Heap Dynamic Memory Allocation (Requires Pass By Reference, and Ref/Pointer Types)
+	- The Problem of The Heap *The Crux of the Presentation*
+
+---
+## Memory Models and How To Use Them, and Why They Exist: 
+	- Manual Memory Management
+	- Problems with Manual Memory Managment (C, Zig)
+	- Garbage Collection (Java, Go, Python)
+	- GC Gotchya's
+	- Ownership and Read Write Permissions
+	- Shallow and Deep Copy
+	- Resource Acquisition Is Initialization (RAII) (C++)
+	- Ownership Based Resource Managment (OBRM) (Rust)
+	- Reference Counting (C++, Switft, Rust)
+	- A note on programming languages
+
+---
+## Advanced Topics: 
+### Generalizing to Other Resources: 
+	- Threads, fearless lock-free concurrency!
+	- Sockets
+	- Files
+### Allocators and Performence: 
+	- Contiguous Memory and why it Matters
+	- CPU Caching Notes
+	- Types of Allocators
+	- Heterogenous Computing
+
+---
+# We are almost ready to get started 😉
+
+---
+# Lets Get a Bit More Technichal: Allocate
+## Allocate: 
+- For our purposes, allocate can be thought of "creating" or reserving memory.
+- For example: If I have 1 Gigibyte of memory, I may set aside (reserve) 4 bytes (32 bits) for an integer when I type: `int myInt = 42;`
+- Memory is not actually "created" or "destroyed", but from the perspective of the programmer, often it can be thought of this way.
+
+---
+# The Problem with the Stack
+- We now have an understanding of the stack
+- Things are piled on top of the stack and removed in reverse order when they reach the end of scope
+
+```c
+{
+	int a = 12; // Hello `a`
+} // Goodbye `a`
+```
+--
+- Lets make an array: 
+```c
+int myArray[10]; // Array size MUST be known at compile time 
+//(so the computer knows how much memory to reserve/allocate)
+```
+--
+- Question: If array size must be known at compile time, how do we change the size of the array at runtime?
+- Your answer must allow for an arbitrary number of elements
+--
+- You cant, not without dynamic memory allocation which is done using **_The Heap_**
+- Without The Heap, the program is limited to a pre-programmed number of things it can store
+--
+- Imagine minecraft with only a few thousand blocks
+- Imagine web-pages with a fixed number of buttons/ui elements or even a fixed size
+- Imagine an Call of Duty with only a fixed number of shots (or zombies)
+- Imagine Excel (or LibreOffice Calc) with only a few hundred columns
+---
+# What if I just make a really big array?
+- Sure you can allocate a TON of memory, but then you are using more memory than you need and making innefficient use of hardware
+- It still leads you to a form of "heap" of sorts, where you manage the large chunk of memory you have allocated
+- ^^ That is unless you process all the unused memory, which is innefficient, and will probably make your program run slow
+# What if I recycled memory?
+- You need to make sure you dont throw anything you need away or have the ability to restore state
+
+---
+# The Heap
+
+- **_The Heap_** is different than the stack: things on the heap **_are not automatically deleted at the end of scope_**
+- Memory on the heap is created explicitly
+- Because heap memory is not automatically deleted at the end of scope it must have its **_memory managed_** through cycles of deletion and creation
+- Heap memory is also Dynamic Memory for this reason (not limited to fixed amounts of data that must be known at compile time)
+- We are moving from the land of C to C++
+- Simple Heap Allocation in C++ 0: https://godbolt.org/z/xWPen17P1
+
+---
+# Heap Allocation: 
+Simple Heap Allocation in C++ 0: https://godbolt.org/z/xWPen17P1
+```c++
+int* myPointer = new int;
+*myPointer = 22;
+```
+![alt text](Diagrams/Memory1.drawio.svg)
+
+---
+# Heap Allocation: 
+Simple Heap Allocation in C++ 0: https://godbolt.org/z/xWPen17P1
+```c++
+int* myPointer = new int;
+*myPointer = 22;
+```
+This is roughly equal to
+```c
+int myInteger = 22;
+int* myPointerOld = &myInteger;
+```
+- The result of the `new` operator is a pointer
+- The main difference between these two examples, is that `myPointer` must have its memory _deallocated_
+--
+![alt text](Diagrams/Heap0.drawio.svg)
+---
+# Why is this a problem?: 
+![alt text](Diagrams/Heap0.drawio.svg)
+- It takes up memory on the computer that could be used for other things
+- The it is no longer availible to the system that allocates memory, `new` wont realize that its free to use
+- Its living there rent free dangit!
+- NOTE: Most modern operating systems will free the memory _when the program closes_, but its still not good!
+---
+# Deleting Memory
+Simple Heap Allocation in C++ 0: https://godbolt.org/z/xWPen17P1
+```c++
+int* myPointer = new int;
+*myPointer = 22;
+delete myPointer; // Change here
+```
+```c
+int myInteger = 22;
+int* myPointerOld = &myInteger;
+```
+- _Now_ they are the same (except for _how_ memory was allocated)
+- `new` allocates/"creates" memory, `delete` deallocates/"removes" memory
+---
+# Notes on Pointers and Arrays
+- NOTE: Memory addresses in C/C++ arrays are contigious 
+	- Suppose `myPointer = &myArray[0]`
+	- Then `myPointer += 1` is equal too `&myArray[1]`
+- NOTE: In C/C++ if we return a pointer to the begginning of the array, we can access the rest of the array
+- Contigious Arrays in C++: https://godbolt.org/z/E6rz18v86
+```c++
+int myArray[10];
+for(int ii = 0; ii < 10; ++ii) {
+    myArray[ii] = ii + 5; // Create array 5 - 14
+}
+int* myPointer = &myArray[0];
+std::cout << "*myPointer Before: " << *myPointer << "\n"; // 5
+myPointer += 1;
+std::cout << "*myPointer After: " << *myPointer << "\n"; // 6
+```
+- _"Pointers are just numbers for memory cubby holes"_
+- Because pointers are _"just numbers"_ they can be passed around like numbers
+---
+# Dynamic Array
+- Cool! Lets create a dynamic array
+- NOTE: Every element of every array in C/C++ have sequential addresses (`myPointer + 1 == &nextElement`)
+- NOTE: In C/C++ if we return a pointer to the begginning of the array, we can access the rest of the array
+- Dynamic Array in C++ 0: https://godbolt.org/z/jrYEE78a5
+
+```c++
+int* MakeDynamicArray(int size) {
+    int* myArray = new int[size];
+    return myArray; // Pass by reference up/out of scope
+}
+// Later...
+int* myArray = MakeDynamicArray(20);
+```
+
+- Awesome right?!
+-- 
+
+- _Not yet_
+
+---
+# Dynamic Array
+```c++
+int* MakeDynamicArray(int size) {
+    int* myArray = new int[size];
+    return myArray;
+}
+// Later...
+int* myArray = MakeDynamicArray(20);
+```
+- What about this function told me to delete the memory?
+- I just have to remeber
+
+---
+# Dynamic Array
+```c++
+int* MakeDynamicArray(int size) {
+    int* myArray = new int[size];
+    return myArray; // Pass by reference up/out of scope
+}
+// Later...
+int* myArray = MakeDynamicArray(20);
+// Even later...
+delete[] myArray; // delete[] is for arrays
+```
+- What if I forgot, or did not realize from the functions interface that I have to delete the memory?
+- If not for `delete[]` this would be called a _"Memory Leak"_
+---
+# That is the first type of problem
+![alt text](Diagrams/Memory1.drawio.svg)
+---
+# Double Free
+```c++
+int* MakeDynamicArray(int size) {
+    int* myArray = new int[size];
+    return myArray;
+}
+// Later...
+int* myArray = MakeDynamicArray(20);
+// Even later...
+delete[] myArray; // delete[] is for arrays
+// One Eternity Later...
+delete[] myArray; // What happens?
+```
+- What if I did not realize that I already deallocated the contents of myArray
+     - The pointer does not go away!
+- This is a more severe error in most cases, its called a _"Double Free"_ and it can cause your program to crash
+---
+# That is the second type of error
+![alt text](Diagrams/Memory2.drawio.svg)
+
+---
+# Use After Free
+```c++
+int* MakeDynamicArray(int size) {
+    int* myArray = new int[size];
+    return myArray; // Pass by reference up/out of scope!
+}
+// Later...
+int* myArray = MakeDynamicArray(20);
+// Even later...
+delete[] myArray; // delete[] is for arrays
+// One Eternity Later...
+myArray[3] = 42; // What happens?
+```
+- Again What if I did not realize that I already deallocated the contents of myArray
+     - Again, the pointer does not go away!
+- This is also can be a fatal error, it is called a _"Use After Free"_, or in some cases _"Segfault"/"Segmentation Fault"_
+- When a pointer points to deallocated memory it is called a _"Dangling Pointer"_
+- Technichally the memory may still exist, however it is _"marked"_ for deletion/reuse and it probably does not contain what you think it does as it may have been overriden
+
+---
+# That is the third type of error
+![alt text](Diagrams/Memory2.drawio.svg)
+
+---
+# The types of error: 
+Given: 
+```c++
+int* myArray = MakeDynamicArray(20); 
+int* myInt = new int;
+*myInt = 21;
+delete[] myArray; 
+delete myInt;
+```
+- Double Free
+```c++
+delete[] myArray; 
+delete myInt;
+```
+- Use after free (using prohibited memory), use a dangling pointer
+```c++
+myArray[3] = 42;
+*myInt = 24;
+```
+- If no delete Memory Leak, nice warm RAM sticks 🙃🍳♨🍞
+
+---
+# Congradulations
+## We have officially gone into the meat and potatos of the presentation!
+---
+## Preamble ✅: 
+	- Scope ✅
+	- Pass By Value ✅
+	- The Stack (Requires: Scope, Pass By Value) ✅
+	- The Problem(s) With The Stack/Pass By Value
+	- Pass by Reference ✅
+	- Reference and Pointer Types ✅
+	- The Heap Dynamic Memory Allocation (Requires Pass By Reference, and Ref/Pointer Types) ✅
+	- The Problem of The Heap ✅
+
+---
+## Memory Models and How To Use Them, and Why They Exist: 
+	- Manual Memory Management ✅
+	- Problems with Manual Memory Managment (C, Zig) ✅
+	- Garbage Collection (Java, Go, Python)
+	- GC Gotchya's
+	- Ownership and Read Write Permissions
+	- Shallow and Deep Copy
+	- Resource Acquisition Is Initialization (RAII) (C++)
+	- Ownership Based Resource Managment (OBRM) (Rust)
+	- Reference Counting (C++, Switft, Rust)
+	- A note on programming languages
+
+---
+## Advanced Topics: 
+### Generalizing to Other Resources: 
+	- Threads, fearless lock-free concurrency!
+	- Sockets
+	- Files
+### Allocators and Performence: 
+	- Contiguous Memory and why it Matters
+	- CPU Caching Notes
+	- Types of Allocators
+	- Heterogenous Computing
+
+---
+# The types of error: 
+Given: 
+```c++
+int* myArray = MakeDynamicArray(20); 
+int* myInt = new int;
+*myInt = 21;
+delete[] myArray; 
+delete myInt;
+```
+- Double Free
+```c++
+delete[] myArray; 
+delete myInt;
+```
+- Use after free (using prohibited memory), use a dangling pointer
+```c++
+myArray[3] = 42;
+*myInt = 24;
+```
+- If no delete Memory Leak, nice warm RAM sticks 🙃🍳♨🍞
+- That is a lot of types of errors!
+- Here comes Java and Garbage Collection
+---
+- I could do manual memory managment (as we discussed) making sure I call exactly 1 `delete` for every `new`
+- But this is quite cumbersome, the errors can be hard to find (since its kind of invisible/behind the scenes)
+- Some people really dont want to deal with it
+
+---
+# Who Owns Memory?
+```c++
+int* myIntPointer = new int;
+```
+- Who or what is in charge of this memory?
+- Who or what _owns_ this memory?
+--
+
+```c++
+int* myIntPointer = new int;
+int* myIntPointer2 = myIntPointer2;
+```
+- What about now?
+
+---
+# Java Types
+- Remember in Java **ALL** class types (typically capitialized) are Pass By Reference
+- Essentially you never touch a class instance, only special "pointers" called "references"
+- Class instances are **NEVER** allocated on the Stack in Java, _ONLY_ the Heap
+- There is no syntax to denote this
+- All of this applies to `String`s (and string literals which have implicit `new`) and Arrays in Java are also pass
+- C++ does not have good garbage collection (though it can be implemented) so we are going to switch to Java for a few minutes
+- Read every `String` as `String*` and `int[]` as `int*`
+
+---
+- Read every `String` as `String*` and `int[]` as `int*`
+```Java
+int[] x = new int[10];
+```
+--
+
+- Wait a minute, where is the `delete`?!
+
+--
+
+- Remeber this diagram? 
+![alt text](Diagrams/Heap0.drawio.svg)
+
+--
+
+- What is the use of `Anonymous Memory Block`?
+
+-- 
+
+- Its a leak!
+
+--
+
+- Doesent this do the same thing?
+
+---
+- Read every `String` as `String*` and `int[]` as `int*`
+```Java
+int[] x = new int[10];
+```
+- Nope
+--
+[Chuck Testa](https://www.youtube.com/watch?v=mbUVtfUWwF8)
+--
+
+![alt text](Diagrams/GarbageCollection0.drawio.svg)
+---
+# JVM Be Like: 
+![alt text](https://media.tenor.com/Iz9dTGGgtVEAAAAC/not-in-my-house.gif)
+## No No No Memory Leaks
+---
+# JVM How?
+- Two Questions
+	- How does it know when it is appropriate to delete memory
+	- How does it know when those conditions occur
+---
+# The Conditions: 
+![alt text](Diagrams/Heap0.drawio.svg)
+- Why is `Anonymous Memory Block` useless?
+---
+# The Conditions: 
+![alt text](Diagrams/Heap1.drawio.svg)
+
+- At each step in the diagram (top to bottom) is `Anonymous Memory Block` still useless?
+---
+# The Conditions: 
+![alt text](Diagrams/Heap1.drawio.svg)
+
+- At each step in the diagram (top to bottom) is `Anonymous Memory Block` still useless?
+- No, its only useless when nothing is pointing at it!
+---
+# Example
+- Java Multiple References 0: https://godbolt.org/z/x9E68aExE 
+```java
+int[] b = null;
+{
+	int[] a = new int[10];
+	b = a;
+}
+for(int ii = 0; ii < 10; ++ii)
+	System.out.print(b[ii] + ",");
+```
+
+- `null` means "this pointer/reference does not point at anything"
+- Can you spot any memory errors?
+	- Memory-Leak, Use After-Free, Double-Free?
+--
+
+- No memory errors, the data that was assigned to `a` continues to exist after `a` goes out of scope because `b` points too it also
+- Its just like the diagram we just saw
+
+---
+# Basically This
+Its just like the diagram
+![alt text](Diagrams/Heap1.drawio.svg)
+
+---
+# Pop Quiz!
+What is the output?
+```java
+int[] b = null;
+{
+    int[] a = new int[10];
+    a[2] = 24;
+    b = a;
+    a[4] = 42;
+}
+for(int ii = 0; ii < 10; ++ii)
+    System.out.print(b[ii] + ",");
+```
+--
+- Answer: 0,0,24,0,42,0,0,0,0,0,
+---
+# Question? 
+- Are ANY memory errors still possible with Java/Garbage Collection (according to the rules of the language)?
+	- If so which ones?
+- Are ANY memory erros not possible with Java/Garbage Collection (according to the rules of the langauge?
+	- If so which ones?
+- Types: Use After Free, Memory Leak, Double Free, ... others?
+
+---
+# Test Class
+- Fail Use Before Acquire: https://godbolt.org/z/hxs6h7s9o
+```java
+class MyClass
+{
+    public int MyMethod() {
+        x += 1;
+        return x;
+    }
+    protected int x;
+}
+```
+
+---
+# Java Use Before/After Free
+- Fail Use Before Acquire: https://godbolt.org/z/hxs6h7s9o
+```java
+MyClass myInstance;
+int x = myInstance.MyMethod();
+System.out.println(x);
+```
+- Is there anything wrong with this?
+
+---
+# Java Use Before/After Free
+- Fail Use Before Acquire: https://godbolt.org/z/hxs6h7s9o
+```java
+MyClass myInstance;
+int x = myInstance.MyMethod();
+System.out.println(x);
+```
+- Is there anything wrong with this?
+- Remember **_ALL_** class types are actually references/"pointers", so read `MyClass myInstnace;` as `MyClass* myInstance;` which is `null` by default
+- The compiler catches this
+```
+<source>:14: error: variable myInstance might not have been initialized
+        int x = myInstance.MyMethod();
+```
+- How can we fix it?
+
+---
+# Java Use Before/After Free
+- Use Before Acquire: https://godbolt.org/z/hvKT7qfrn
+```java
+public static void CallMyMethod(MyClass myInstance)
+{
+    int x = myInstance.MyMethod();
+    System.out.println(x);
+}
+public static void main(String[] args)
+{
+    CallMyMethod(null);
+}
+```
+- No compiler error
+- Is there anything wrong with this?
+--
+
+- Crashes at runtime: 
+```
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "MyClass.MyMethod()" because "<parameter1>" is null
+	at Main.CallMyMethod(example.java:13)
+	at Main.main(example.java:18)
+```
+--
+- Why?
+--
+`myInstance` is set to `null`
+
+--
+
+- How can we fix it?
+
+---
+#### The Majority of Errors
+- JPanel Example: https://godbolt.org/z/EWT9qvvW1
+- The majority of errors I see with computer science students using Java amount to something like this, _Use Before Acquire_, example: 
+```java
+class MyGUI
+{
+    private JFrame jframe;
+    private JPanel myPanel;
+    private JButton myButton;
+    MyGUI()
+    {
+        jframe = new JFrame("My Frame");
+        myPanel.setLayout(new FlowLayout());  
+        myButton.setText("Dont Push My Buttons!");
+        myPanel.add(myButton);
+        jframe.add(myPanel);  
+        jframe.setSize(200, 300);  
+        jframe.setLocationRelativeTo(null);  
+        jframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  
+        jframe.setVisible(true);
+    }
+}
+```
+- Can you spot the problem(s)?
+- What would happen if we tried to `MyGUI gui = new MyGUI();`?
+---
+
+# Example Notes: 
+- Can you spot the problem(s)?
+- What would happen if we tried to `MyGUI gui = new MyGUI();`?
+- Copy Pasta of the last code thanks too: https://www.javatpoint.com/java-jframe
+- _Remember to allocate your memory_
+
+---
+# More
+- That is similar to Use After Free, but its not exactly a Use After Free
+- Can we make a _Use After Free_ in Java?
+
+---
+# Reminder for MyClass
+Java Use After Free: https://godbolt.org/z/h3Gx3TG56
+```java
+class MyClass
+{
+    public int MyMethod() {
+        x += 1;
+        return x;
+    }
+    protected int x;
+}
+```
+---
+# Use After Free In Java
+```java
+MyClass myInstance = new MyClass();
+myInstance = null;
+myInstance.MyMethod();
+```
+- This happily compiles in Java
+- Then: 
+```
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "MyClass.MyMethod()" because "<local1>" is null
+	at Main.main(example.java:16)
+```
+- Why?
+--
+
+- Setting `myInstance` to `null` when `myInstance` is the only reference left is effectivley like calling `delete` the JVM now knows to deallocate the memory
+	- It gets "swatted" by the JVM
+- So memory errors are still possible
+
+---
+
+![alt text](Diagrams/GarbageCollection0.drawio.svg)
+
+---
+# JVM How?
+- Two Questions
+	- How does it know when it is appropriate to delete memory ✅
+	- How does it know when those conditions occur
+
+---
+# The JVM
+- There are multiple Java runtimes, Oracle's JVM usually being the one we refer too, and each one is a little different.
+- However, the way they usually work is there is a program that actually runs compiled Java/JVM "bytecode"
+- That machine must _**activley**_ keep track of memory
+--
+
+- This can take a lot of CPU power and there are several different schemes for it
+--
+
+- The most well known type of Garbage Collector is perhapse the "Mark and Sweep" Garbage Collector
+
+---
+# Mark And Sweep
+--
+
+- Deallocating (and allocating) memory is expensive (in terms of performence)
+--
+
+- Therefore, before the "JVM" swats, it marks, which is "cheap" and easy in terms of performence
+--
+
+- Then every once in a while it runs through all the "marked" memory and deallocates it (or recycles it)
+
+- This is what is commonly reffered to also as a "GC Slowdown" periodic spans of time where the program will be sluggish for no apparent reason (as far as the user knows)
+--
+
+	- This is particularly inconvient when running a high-performence server application or any application which needs microsecond/nanosecond predictiblity
+--
+
+	- All "Managed" or Garbage Collected languages (as far as I know) are suseptible to GC Slowdowns (Java, C#, Python, JavaScript, Kotlin [depending on runtime], etc.)
+---
+# Speculate
+- What would happen if you could not nullify refrences in Java?
+--
+
+![alt text](Diagrams/Sir_Tony_Hoare_IMG_5125.jpg)
+- _I call it my billion-dollar mistake. It was the invention of the null reference in 1965. At that time, I was designing the first comprehensive type system for references in an object oriented language (ALGOL W). My goal was to ensure that all use of references should be absolutely safe, with checking performed automatically by the compiler. But I couldn't resist the temptation to put in a null reference, simply because it was so easy to implement. This has led to innumerable errors, vulnerabilities, and system crashes, which have probably caused a billion dollars of pain and damage in the last forty years_
+- Tony Hoare, 2009
+
+---
+# JVM How?
+- Two Questions
+	- How does it know when it is appropriate to delete memory ✅
+	- How does it know when those conditions occur ✅
+
+---
+# Garbage Collection in Summery
+
+- Garbage Collection (GC) eliminates Memory Leaks and Double Free errors
+- Garbage Collection requires a program to run along side the program (which is a dependancy and incures performence costs)
+- Garbage Collection is _"safer"_ than Manual Memory Managmeent (MMM) and generally eliminates more Dangling Pointers/Use-After-Free errors than MMM
+
+# Who Owns Memory?
+
+```java
+MyClass a = new MyClass();
+MyClass b = a;
+```
+- Who or what is in charge of the `new MyClass`?
+
+---
+## Preamble ✅: 
+	- Scope ✅
+	- Pass By Value ✅
+	- The Stack (Requires: Scope, Pass By Value) ✅
+	- The Problem(s) With The Stack/Pass By Value
+	- Pass by Reference ✅
+	- Reference and Pointer Types ✅
+	- The Heap Dynamic Memory Allocation (Requires Pass By Reference, and Ref/Pointer Types) ✅
+	- The Problem of The Heap ✅
+
+---
+## Memory Models and How To Use Them, and Why They Exist: 
+	- Manual Memory Management ✅
+	- Problems with Manual Memory Managment (C, Zig) ✅
+	- Garbage Collection (Java, Go, Python) ✅
+	- GC Gotchya's ✅
+	- Ownership and Read Write Permissions
+	- Shallow and Deep Copy
+	- Resource Acquisition Is Initialization (RAII) (C++)
+	- Reference Counting (C++, Switft, Rust)
+	- Ownership Based Resource Managment (OBRM) (Rust)
+	- A note on programming languages
+
+---
+## Advanced Topics: 
+### Generalizing to Other Resources: 
+	- Threads, fearless lock-free concurrency!
+	- Sockets
+	- Files
+### Allocators and Performence: 
+	- Contiguous Memory and why it Matters
+	- CPU Caching Notes
+	- Types of Allocators
+	- Heterogenous Computing
+
+
+---
+## Small Aside: C++ References
+
+- Like pointers but prettier and have different semantics
+--
+
+- Every class type in Java is a reference
+--
+
+- References dont refer to references of the same base type
+--
+
+- Non-nullable(ish) in C++
+
+```java
+MyClass myReference; // Initialization not required in Java, null by defualt
+```
+--
+
+```c++
+MyClass* myReference = &myInstance; // Initialization is REQUIRED in C++
+```
+--
+^^ Equal to: 
+
+```c++
+MyClass& myReference = myInstance; // Initialization is REQUIRED in C++
+```
+---
+## Small Aside: C++ References
+
+- Like pointers but prettier and have different semantics
+- Every class type in Java is a reference
+- References dont refer to references of the same base type
+- Non-nullable(ish) in C++
+
+```java
+MyClass myReference; // Initialization not required in Java, null by defualt
+```
+```c++
+MyClass* myReference = &myInstance; // Initialization is REQUIRED in C++
+```
+- ^^ Equal to: 
+
+```c++
+MyClass& myReference = myInstance; // Initialization is REQUIRED in C++
+//    ^^ A tad confusing because the & is over here now and 
+// no longer means "address of" but denotes a reference type
+```
+--
+- Primitive types can be referenes in C++ e.g: 
+
+```c++
+int& myReference = myInteger; // Initialization is REQUIRED in C++
+```
+
+--
+- `MyClass&` is a type distinct from `MyClass`, just like `MyClass*` is a pointer type distinct from `MyClass`
+- `int&` is a type distinct from `int`, just like `int*` is a pointer type distinct from `int`
+
+---
+```java
+MyClass myReference; // Initialization not required in Java, null by defualt
+```
+```c++
+MyClass* myReference = &myInstance; // Initialization is REQUIRED in C++
+```
+- ^^ Equal to: 
+
+```c++
+MyClass& myReference = myInstance; // Initialization is REQUIRED in C++
+//    ^^ A tad confusing because the & is over here now and 
+// no longer means "address of" but denotes a reference type
+```
+--
+- Primitive types can be referenes in C++ e.g: 
+
+```c++
+int& myReference = myInteger; // Initialization is REQUIRED in C++
+```
+
+--
+
+- `MyClass&` is a type distinct from `MyClass`, just like `MyClass*` is a pointer type distinct from `MyClass`
+- `int&` is a type distinct from `int`, just like `int*` is a pointer type distinct from `int`
+
+--
+- We will start seeing references in C++ (they are just like pointers)
+
+---
+# Quick Example: 
+- References in C++: https://godbolt.org/z/obKhrexdf
+```c++
+void AddOnePointer(int* myPointer) {
+	*myPointer += 1;
+}
+void AddOneReference(int& myReference) {
+	myReference += 1; // No need for `*`
+}
+// Later ... 
+int a = 40;
+// Line 0: What is `a` here
+AddOnePointer(&a);
+// Line 1: What is `a` here?
+AddOneReference(a); 
+// Line 2: What is `a` here?
+```
+- What is `a` at Lines: 0, 1, and 2?
+--
+
+- 40, 41, 42
+
+---
+# Back to the main program
+
+---
+### Read and Write Permissions
+
+- Do you want anyone on BSU's network to be able to modify your files?
+--
+![alt text](Diagrams/Permissions0.png)
+
+---
+# Libraries: 
+- I get a book from the library
+-- 
+
+- The library owns and manages the book
+--
+
+- I may read the book but I may not write on the pages (R only)
+--
+
+- The library may put stamps or checkout dates in the book (RW Read Write)
+
+---
+# Linux File Permissions: Conceptual Example
+
+![alt text](Diagrams/Permissions3Wide.png)
+![alt text](Diagrams/Permissions2.png)
+
+---
+# Next Examples: 
+
+- Read Write in C++ With Pointers 0: https://godbolt.org/z/rnbhTbbTd
+- Read Write in C++ 0: https://godbolt.org/z/Ydnhx5d1n
+
+---
+# Code Example: 
+
+- Read Write in C++ With Pointers 0: https://godbolt.org/z/rnbhTbbTd
+- Read Write in C++ 0: https://godbolt.org/z/Ydnhx5d1n
+![alt text](Diagrams/NESControllerScaled.jpg)
+
+```c++
+class NESController {
+	public: 
+		bool a, b, up, down, left, right, select, start;
+};
+
+class Player {
+	public: 
+		float x, y, xVelocity, yVelocity;
+};
+```
+---
+# `const`
+```c++
+int a = 0;
+a = 2; // Ok
+const int b = 23;
+b = 5; // Error
+```
+
+---
+# C++ Read and Write with const
+- Read Write in C++ With Pointers 0: https://godbolt.org/z/rnbhTbbTd
+
+```c++
+void UpdatePlayer(const NESController* controller, Player* player) {
+    if(controller->up == true)
+        player->yVelocity += 1.f;
+}
+
+// Later ... 
+Player myPlayer;
+NESController myController;
+//...
+UpdatePlayer(&myController, &myPlayer);
+```
+- If the player's `yVelocity` starts at zero
+	- What happens if up is pressed?
+	- What happens if down is pressed?
+
+---
+---
+# C++ Read and Write with const (and References)
+- Read Write in C++ 0: https://godbolt.org/z/Ydnhx5d1n
+
+```c++
+void UpdatePlayer(const NESController& controller, Player& player) {
+    if(controller.up == true)
+        player.yVelocity += 1.f;
+}
+
+// Later ... 
+Player myPlayer;
+NESController myController;
+//...
+UpdatePlayer(myController, myPlayer); // Remember the parameter types!
+```
+- If the player's `yVelocity` starts at zero
+	- What happens if up is pressed?
+	- What happens if down is pressed?
+
+---
+## C++ Read and Write with const
+- Read Write in C++ 0: https://godbolt.org/z/Ydnhx5d1n
+
+```c++
+void UpdatePlayer(const NESController& controller, Player& player) {
+    if(controller.up == true)
+        player.yVelocity += 1.f;
+}
+
+// Later ... 
+Player myPlayer;
+NESController myController;
+//...
+UpdatePlayer(myController, myPlayer); // Remember the parameter types?
+```
+- Why do you think `controller` is const?
+--
+
+	- I am not controlling the input, the physical controller controls that value
+	- I am telling another programmer "It is safe" to pass a pointer to controller "I wont touch your stuff"
+--
+
+- Why do you think `player` is not const?
+--
+
+	- I want to modify the player
+	- I am implicitly communicating that fact, anyone using this function programmer knows that passing a `Player*` pointer too this function means it may be modified and I **cant** rely on it not changing?
+---
+# Comparison with Pass By Value Version: 
+- Read Write in C++ With Pass By Value 0: https://godbolt.org/z/5Yrn8rKq7
+```c++
+Player UpdatePlayer(NESController controller, Player player) {
+    if(controller.up == true)
+        player.yVelocity += 1.f;
+    return player;
+}
+// Later...
+Player player;
+NESController controller;
+//...
+player = UpdatePlayer(controller, player); // Remember the parameter types!
+```
+- If the player's `yVelocity` starts at zero
+	- What happens if up is pressed?
+	- What happens if down is pressed?
+---
+# Comparison with Pass By Value Version: 
+- Read Write in C++ With Pass By Value 0: https://godbolt.org/z/5Yrn8rKq7
+```c++
+Player UpdatePlayer(NESController controller, Player player) {
+    if(controller.up == true)
+        player.yVelocity += 1.f;
+    return player; // Need to return player, otherwise nothing outside will change!
+}
+// Later...
+Player player;
+NESController controller;
+//...
+player = UpdatePlayer(controller, player); // Remember the parameter types!
+```
+- Does it matter to the person who uses this function what is or is not `const`?
+
+---
+## Preamble ✅
+## Memory Models and How To Use Them, and Why They Exist: 
+	- Manual Memory Management ✅
+	- Problems with Manual Memory Managment (C, Zig) ✅
+	- Garbage Collection (Java, Go, Python) ✅
+	- GC Gotchya's ✅
+	- Ownership and Read Write Permissions 1/2
+	- Shallow and Deep Copy
+	- Resource Acquisition Is Initialization (RAII) (C++)
+	- Reference Counting (C++, Switft, Rust)
+	- Ownership Based Resource Managment (OBRM) (Rust)
+	- A note on programming languages
+
+---
+## Advanced Topics: 
+### Generalizing to Other Resources: 
+	- Threads, fearless lock-free concurrency!
+	- Sockets
+	- Files
+### Allocators and Performence: 
+	- Contiguous Memory and why it Matters
+	- CPU Caching Notes
+	- Types of Allocators
+	- Heterogenous Computing
+---
+# Ownership
+- Who or what is responcible for memory?
+--
+
+- Whatever allocated memory is assigned too first is responcible for
+--
+
+	- Its lifetime (deallocation/deletion)
+--
+
+	- Managing it (managing access to it, saying who can or can not delete or change it)
+
+--
+- _If you allocated it you are responcible for it_
+
+---
+# Ownership Can Be Spread
+```c++
+int* myNumber = new int;
+int* counter = myNumber
+```
+- Both "own" the memory that was allocated to `myNumber`
+- Both can delete it
+--
+
+- But who _should_ delete it? 
+
+---
+# Ownership Does Not _Have_ to be Spread
+```c++
+int* myNumber = new int;
+const int* observer = myNumber;
+```
+
+- `observer` _can not_ delete the memory, but it _can_ read it
+
+---
+# C++ Read and Write with const (and References)
+- Read Write in C++ 0: https://godbolt.org/z/Ydnhx5d1n
+
+```c++
+void UpdatePlayer(const NESController& controller, Player& player) {
+    if(controller.up == true)
+        player.yVelocity += 1.f;
+}
+
+// Later ... 
+Player myPlayer;
+NESController myController;
+//...
+UpdatePlayer(myController, myPlayer); // Remember the parameter types!
+```
+- Look familiar?
+---
+# A Map Of Memory Models: 
+![alt text](Diagrams/Saftey0.drawio.svg)
+
+---
+# Imagine You Are a Game Engine Developer...
+- You are writing a particles system with where thousands of particles can be on screen at once
+- You need to write a function to simulate particle physics
+- What do you do?
+
+![alt text](Diagrams/Saftey0.drawio.svg)
+
+---
+## Preamble ✅
+## Memory Models and How To Use Them, and Why They Exist: 
+	- Manual Memory Management ✅
+	- Problems with Manual Memory Managment (C, Zig) ✅
+	- Garbage Collection (Java, Go, Python) ✅
+	- GC Gotchya's ✅
+	- Ownership and Read Write Permissions ✅
+	- Shallow and Deep Copy
+	- Resource Acquisition Is Initialization (RAII) (C++)
+	- Reference Counting (C++, Switft, Rust)
+	- Ownership Based Resource Managment (OBRM) (Rust)
+	- A note on programming languages
+
+---
+## Advanced Topics: 
+### Generalizing to Other Resources: 
+	- Threads, fearless lock-free concurrency!
+	- Sockets
+	- Files
+### Allocators and Performence: 
+	- Contiguous Memory and why it Matters
+	- CPU Caching Notes
+	- Types of Allocators
+	- Heterogenous Computing
+---
+Constructors and Destructors in C++ 0: https://godbolt.org/z/T14ed4rMr
+
+```c++
+class Greeter
+{
+    int number;
+    public: 
+        Greeter(int number_) { // like python __init__ or java constructor
+            number = number_;
+            std::cout << "Hello " << number << "\n";
+        }
+        ~Greeter() {
+            std::cout << "Goodbye " << number << "\n";
+        }
+};
+// Later ...
+{
+    Greeter greeter0(0);
+    {
+        Greeter greeter1(1);
+    }
+}
+```
+--
+
+- What is the output?
+--
+
+- Hello 0, Hello 1, Goodbye 1, Goodbye 0
+--
+
+- Its the stack!
+---
+# Keep it in your brain
+- Constructors and Destructors in C++ 0: https://godbolt.org/z/T14ed4rMr
+
+```c++
+class Greeter
+{
+    int number;
+    public: 
+        Greeter(int number_) { // like python __init__ or java constructor
+            number = number_;
+            std::cout << "Hello " << number << "\n";
+        }
+        ~Greeter() {
+            std::cout << "Goodbye " << number << "\n";
+        }
+};
+```
+---
+# Constructors and Memory Allocation
+- Greeter Allocate 0: https://godbolt.org/z/r45csen6q
+```c++
+{
+    Greeter* greeter = new Greeter(0);
+}
+```
+- What is the output?
+--
+
+- "Hello 0"
+--
+
+- Its a leak! (If it were not we would see "Goodbye 0")
+
+---
+# Constructors and Memory Allocation
+- Greeter Allocate 1: https://godbolt.org/z/cW7rK3rz5
+```c++
+Greeter* MakeGreeter(int number) {
+    Greeter greeter1(1);
+    return new Greeter(number);
+}
+//Later ...
+Greeter* greeter = MakeGreeter(0);
+delete greeter;
+```
+- What is the output?
+--
+
+- Hello 1, Hello 0, Goodbye 1, Goodbye 0
+
+--
+
+- Not a perfect stack!
+
+---
+# Do you understand constructors and destructors?
+## Questions on constructors?
+- Remember you may use godbolt + discord to send me questions
+
+---
+# Copy
+- Greeter Copy 0: https://godbolt.org/z/coojKG7vh
+```c++
+int SomeFunction(Greeter greeter) {
+    return 42;
+}
+// Later ...
+{
+    Greeter test(0);
+    SomeFunction(test);
+}
+```
+- What is the output
+--
+
+- Output: Hello 0, Goodbye 0, Goodbye 0
+
+---
+- Copy Constructor 0: https://godbolt.org/z/GdGW3a3d1
+
+```c++
+class Greeter
+{
+    int number;
+    public: 
+        Greeter(int number_) { // like python __init__ or java constructor
+            number = number_;
+            std::cout << "Hello " << number << "\n";
+        }
+        Greeter(const Greeter& other) {
+            number = other.number;
+            std::cout << "Copy " << number << "\n";
+        }
+        ~Greeter() {
+            std::cout << "Goodbye " << number << "\n";
+        }
+};
+```
+- Why is `other` `const`?
+
+---
+- Copy Constructor 0: https://godbolt.org/z/GdGW3a3d1
+
+```c++
+class Greeter
+{
+    int number;
+    public: 
+        Greeter(int number_) { // like python __init__ or java constructor
+            number = number_;
+            std::cout << "Hello " << number << "\n";
+        }
+        Greeter(const Greeter& other) {
+            number = other.number;
+            std::cout << "Copy " << number << "\n";
+        }
+        ~Greeter() {
+            std::cout << "Goodbye " << number << "\n";
+        }
+};
+int SomeFunction(Greeter greeter) {
+    return 42;
+}
+// Later in brackets... 
+Greeter test(0);
+SomeFunction(test);
+```
+- What is the output
+--
+
+---
+- Copy Constructor 0: https://godbolt.org/z/GdGW3a3d1
+```c++
+int SomeFunction(Greeter greeter) {
+    return 42;
+}
+// Later in brackets... 
+Greeter test(0);
+SomeFunction(test);
+```
+- What is the output
+
+--
+
+- Hello 0, Copy 0, Goodbye 0, Goodbye 0
+
+--
+
+- Remember before: Hello 0, Goodbye 0, Goodbye 0
+	- Make more sense now? Another greeter was constructed using the _copy constructor_
+
+--
+
+- We will come back to this example
+
+---
+# Smart Pointers
+- Smart pointers are classes that manage memory
+     - They are C++'s answer to all of its memory woes.
+'
+---
+# Lets Make a Smart Pointer!
+- Auto Pointer: https://godbolt.org/z/GbPsbddov
+```c++
+class AutoPointer
+{
+    Greeter* myGreeter;
+    public:
+        AutoPointer(int number) {
+            myGreeter = new Greeter(number);
+        }
+        ~AutoPointer() {
+            delete myGreeter;
+        }
+};
+// Later ...
+{
+    AutoPointer smartPointer(0);
+}
+```
+- What is the output
+--
+
+- Hello 0, Goodbye 0
+--
+
+- Woo hoo! 🎉 Problem solved right?
+--
+
+- Nope
+--
+, Chuck Testa
+
+---
+# Next Example
+- Auto Pointer 1: https://godbolt.org/z/edGWaT9nq
+
+---
+## Remember this example?
+```c++
+int SomeFunction(Greeter greeter) {
+    return 42;
+}
+// Later ...
+{
+    Greeter test(0);
+    SomeFunction(test);
+}
+```
+- Output: Hello 0, Copy 0, Goodbye 0, Goodbye 0
+- Lets try it with a smart pointer instead
+```c++
+int SomeFunction(AutoPointer greeter) {
+    return 42;
+} // Later ...
+{
+    AutoPointer smartPointer(0);
+    SomeFunction(smartPointer);
+}
+```
+- What is the output?
+--
+
+- free(): double free detected in tcache 2
+--
+, double free?!
+--
+Why?!
+---
+# Why double free: 
+```c++
+int SomeFunction(AutoPointer greeter) {
+    return 42;
+} // Later ...
+{
+    AutoPointer smartPointer(0);
+    SomeFunction(smartPointer);
+}
+```
+- Remember in the original example: 
+- Output: Hello 0, Copy 0, Goodbye 0, Goodbye 0
+- The same constructors/destructors get called on the `AutoPointer`
+	- The destructor calls `delete` so `delete` gets called twice! Double Free! Oh No!
+-- 
+	- Will we ever be _free_ of memory errors? 😏
+
+
+---
+# How About We Count Them, Reference Counting: `shared_ptr`
+```
+int UseShared(std::shared_ptr<Greeter> other) {
+    return 42;
+}
+// ... Later
+{
+	std::shared_ptr<Greeter> greeter(new Greeter(0));
+	UseShared(greeter);
+}
+```
+
+- Output: Hello 0, Goodbye 0
+
+---
+# Cyclic References
+```c++
+class Resource
+{
+public:
+	std::shared_ptr<Resource> m_ptr {}; // initially created empty
+	
+	Resource() { std::cout << "Resource acquired\n"; }
+	~Resource() { std::cout << "Resource destroyed\n"; }
+};
+{ // Later ...
+	auto ptr1 { std::make_shared<Resource>() };
+	ptr1->m_ptr = ptr1; // m_ptr is now sharing the Resource that contains it
+}
+```
+- Can be remiedied using non-owning `weak_ptr`
+- Thanks too: https://www.learncpp.com/cpp-tutorial/circular-dependency-issues-with-stdshared_ptr-and-stdweak_ptr/
+- I encourage reading the article
+
+---
+# Unique Pointer
+
+
+
+
+
+
+
+---
+--- 
+- JVM Image: https://www.bridgingpointsmedia.com/everything-about-java-virtual-machine/ 
+- Fly Swatter Image: https://www.gettyimages.com.au/detail/news-photo/july-2018-berlin-germany-a-person-is-holding-a-fly-swatter-news-photo/1000971736 
+- Not in my house GIF: https://media.tenor.com/Iz9dTGGgtVEAAAAC/not-in-my-house.gif
+- Picture of Tony Hoare https://en.wikipedia.org/wiki/Tony_Hoare
+- Hoare, Tony (2009). "Null References: The Billion Dollar Mistake" (Presentation abstract). QCon London. Archived from the original on 28 June 2009
+- Chmod Calculator: https://linuxhandbook.com/chmod-calculator/
+- JSLinux: https://bellard.org/jslinux/
+- Lunapic https://www7.lunapic.com/editor/
+- NES Controller: http://www.twobuttoncrew.com/2016/08/14/ranking-all-nintendo-controllers/
+
+</textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
