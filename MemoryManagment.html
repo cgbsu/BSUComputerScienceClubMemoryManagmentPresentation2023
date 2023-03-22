@@ -1652,6 +1652,21 @@ myArray[3] = 42;
 - Some people really dont want to deal with it
 
 ---
+# Who Owns Memory?
+```c++
+int* myIntPointer = new int;
+```
+- Who or what is in charge of this memory?
+- Who or what _owns_ this memory?
+--
+
+```c++
+int* myIntPointer = new int;
+int* myIntPointer2 = myIntPointer2;
+```
+- What about now?
+
+---
 # Java Types
 - Remember in Java **ALL** class types (typically capitialized) are Pass By Reference
 - Essentially you never touch a class instance, only special "pointers" called "references"
@@ -1959,12 +1974,35 @@ Exception in thread "main" java.lang.NullPointerException: Cannot invoke "MyClas
 --
 
 	- All "Managed" or Garbage Collected languages (as far as I know) are suseptible to GC Slowdowns (Java, C#, Python, JavaScript, Kotlin [depending on runtime], etc.)
+---
+# Speculate
+- What would happen if you could not nullify refrences in Java?
+--
+
+![alt text](Diagrams/Sir_Tony_Hoare_IMG_5125.jpg)
+- _I call it my billion-dollar mistake. It was the invention of the null reference in 1965. At that time, I was designing the first comprehensive type system for references in an object oriented language (ALGOL W). My goal was to ensure that all use of references should be absolutely safe, with checking performed automatically by the compiler. But I couldn't resist the temptation to put in a null reference, simply because it was so easy to implement. This has led to innumerable errors, vulnerabilities, and system crashes, which have probably caused a billion dollars of pain and damage in the last forty years_
+- Tony Hoare, 2009
 
 ---
 # JVM How?
 - Two Questions
 	- How does it know when it is appropriate to delete memory ✅
 	- How does it know when those conditions occur ✅
+
+---
+# Garbage Collection in Summery
+
+- Garbage Collection (GC) eliminates Memory Leaks and Double Free errors
+- Garbage Collection requires a program to run along side the program (which is a dependancy and incures performence costs)
+- Garbage Collection is _"safer"_ than Manual Memory Managmeent (MMM) and generally eliminates more Dangling Pointers/Use-After-Free errors than MMM
+
+# Who Owns Memory?
+
+```java
+MyClass a = new MyClass();
+MyClass b = a;
+```
+- Who or what is in charge of the `new MyClass`?
 
 ---
 ## Preamble ✅: 
@@ -1986,8 +2024,8 @@ Exception in thread "main" java.lang.NullPointerException: Cannot invoke "MyClas
 	- Ownership and Read Write Permissions
 	- Shallow and Deep Copy
 	- Resource Acquisition Is Initialization (RAII) (C++)
-	- Ownership Based Resource Managment (OBRM) (Rust)
 	- Reference Counting (C++, Switft, Rust)
+	- Ownership Based Resource Managment (OBRM) (Rust)
 	- A note on programming languages
 
 ---
@@ -2003,10 +2041,736 @@ Exception in thread "main" java.lang.NullPointerException: Cannot invoke "MyClas
 	- Heterogenous Computing
 
 
+---
+## Small Aside: C++ References
+
+- Like pointers but prettier and have different semantics
+--
+
+- Every class type in Java is a reference
+--
+
+- References dont refer to references of the same base type
+--
+
+- Non-nullable(ish) in C++
+
+```java
+MyClass myReference; // Initialization not required in Java, null by defualt
+```
+--
+
+```c++
+MyClass* myReference = &myInstance; // Initialization is REQUIRED in C++
+```
+--
+^^ Equal to: 
+
+```c++
+MyClass& myReference = myInstance; // Initialization is REQUIRED in C++
+```
+---
+## Small Aside: C++ References
+
+- Like pointers but prettier and have different semantics
+- Every class type in Java is a reference
+- References dont refer to references of the same base type
+- Non-nullable(ish) in C++
+
+```java
+MyClass myReference; // Initialization not required in Java, null by defualt
+```
+```c++
+MyClass* myReference = &myInstance; // Initialization is REQUIRED in C++
+```
+- ^^ Equal to: 
+
+```c++
+MyClass& myReference = myInstance; // Initialization is REQUIRED in C++
+//    ^^ A tad confusing because the & is over here now and 
+// no longer means "address of" but denotes a reference type
+```
+--
+- Primitive types can be referenes in C++ e.g: 
+
+```c++
+int& myReference = myInteger; // Initialization is REQUIRED in C++
+```
+
+--
+- `MyClass&` is a type distinct from `MyClass`, just like `MyClass*` is a pointer type distinct from `MyClass`
+- `int&` is a type distinct from `int`, just like `int*` is a pointer type distinct from `int`
+
+---
+```java
+MyClass myReference; // Initialization not required in Java, null by defualt
+```
+```c++
+MyClass* myReference = &myInstance; // Initialization is REQUIRED in C++
+```
+- ^^ Equal to: 
+
+```c++
+MyClass& myReference = myInstance; // Initialization is REQUIRED in C++
+//    ^^ A tad confusing because the & is over here now and 
+// no longer means "address of" but denotes a reference type
+```
+--
+- Primitive types can be referenes in C++ e.g: 
+
+```c++
+int& myReference = myInteger; // Initialization is REQUIRED in C++
+```
+
+--
+
+- `MyClass&` is a type distinct from `MyClass`, just like `MyClass*` is a pointer type distinct from `MyClass`
+- `int&` is a type distinct from `int`, just like `int*` is a pointer type distinct from `int`
+
+--
+- We will start seeing references in C++ (they are just like pointers)
+
+---
+# Quick Example: 
+- References in C++: https://godbolt.org/z/obKhrexdf
+```c++
+void AddOnePointer(int* myPointer) {
+	*myPointer += 1;
+}
+void AddOneReference(int& myReference) {
+	myReference += 1; // No need for `*`
+}
+// Later ... 
+int a = 40;
+// Line 0: What is `a` here
+AddOnePointer(&a);
+// Line 1: What is `a` here?
+AddOneReference(a); 
+// Line 2: What is `a` here?
+```
+- What is `a` at Lines: 0, 1, and 2?
+--
+
+- 40, 41, 42
+
+---
+# Back to the main program
+
+---
+### Read and Write Permissions
+
+- Do you want anyone on BSU's network to be able to modify your files?
+--
+![alt text](Diagrams/Permissions0.png)
+
+---
+# Libraries: 
+- I get a book from the library
+-- 
+
+- The library owns and manages the book
+--
+
+- I may read the book but I may not write on the pages (R only)
+--
+
+- The library may put stamps or checkout dates in the book (RW Read Write)
+
+---
+# Linux File Permissions: Conceptual Example
+
+![alt text](Diagrams/Permissions3Wide.png)
+![alt text](Diagrams/Permissions2.png)
+
+---
+# Next Examples: 
+
+- Read Write in C++ With Pointers 0: https://godbolt.org/z/rnbhTbbTd
+- Read Write in C++ 0: https://godbolt.org/z/Ydnhx5d1n
+
+---
+# Code Example: 
+
+- Read Write in C++ With Pointers 0: https://godbolt.org/z/rnbhTbbTd
+- Read Write in C++ 0: https://godbolt.org/z/Ydnhx5d1n
+![alt text](Diagrams/NESControllerScaled.jpg)
+
+```c++
+class NESController {
+	public: 
+		bool a, b, up, down, left, right, select, start;
+};
+
+class Player {
+	public: 
+		float x, y, xVelocity, yVelocity;
+};
+```
+---
+# `const`
+```c++
+int a = 0;
+a = 2; // Ok
+const int b = 23;
+b = 5; // Error
+```
+
+---
+# C++ Read and Write with const
+- Read Write in C++ With Pointers 0: https://godbolt.org/z/rnbhTbbTd
+
+```c++
+void UpdatePlayer(const NESController* controller, Player* player) {
+    if(controller->up == true)
+        player->yVelocity += 1.f;
+}
+
+// Later ... 
+Player myPlayer;
+NESController myController;
+//...
+UpdatePlayer(&myController, &myPlayer);
+```
+- If the player's `yVelocity` starts at zero
+	- What happens if up is pressed?
+	- What happens if down is pressed?
+
+---
+---
+# C++ Read and Write with const (and References)
+- Read Write in C++ 0: https://godbolt.org/z/Ydnhx5d1n
+
+```c++
+void UpdatePlayer(const NESController& controller, Player& player) {
+    if(controller.up == true)
+        player.yVelocity += 1.f;
+}
+
+// Later ... 
+Player myPlayer;
+NESController myController;
+//...
+UpdatePlayer(myController, myPlayer); // Remember the parameter types!
+```
+- If the player's `yVelocity` starts at zero
+	- What happens if up is pressed?
+	- What happens if down is pressed?
+
+---
+## C++ Read and Write with const
+- Read Write in C++ 0: https://godbolt.org/z/Ydnhx5d1n
+
+```c++
+void UpdatePlayer(const NESController& controller, Player& player) {
+    if(controller.up == true)
+        player.yVelocity += 1.f;
+}
+
+// Later ... 
+Player myPlayer;
+NESController myController;
+//...
+UpdatePlayer(myController, myPlayer); // Remember the parameter types?
+```
+- Why do you think `controller` is const?
+--
+
+	- I am not controlling the input, the physical controller controls that value
+	- I am telling another programmer "It is safe" to pass a pointer to controller "I wont touch your stuff"
+--
+
+- Why do you think `player` is not const?
+--
+
+	- I want to modify the player
+	- I am implicitly communicating that fact, anyone using this function programmer knows that passing a `Player*` pointer too this function means it may be modified and I **cant** rely on it not changing?
+---
+# Comparison with Pass By Value Version: 
+- Read Write in C++ With Pass By Value 0: https://godbolt.org/z/5Yrn8rKq7
+```c++
+Player UpdatePlayer(NESController controller, Player player) {
+    if(controller.up == true)
+        player.yVelocity += 1.f;
+    return player;
+}
+// Later...
+Player player;
+NESController controller;
+//...
+player = UpdatePlayer(controller, player); // Remember the parameter types!
+```
+- If the player's `yVelocity` starts at zero
+	- What happens if up is pressed?
+	- What happens if down is pressed?
+---
+# Comparison with Pass By Value Version: 
+- Read Write in C++ With Pass By Value 0: https://godbolt.org/z/5Yrn8rKq7
+```c++
+Player UpdatePlayer(NESController controller, Player player) {
+    if(controller.up == true)
+        player.yVelocity += 1.f;
+    return player; // Need to return player, otherwise nothing outside will change!
+}
+// Later...
+Player player;
+NESController controller;
+//...
+player = UpdatePlayer(controller, player); // Remember the parameter types!
+```
+- Does it matter to the person who uses this function what is or is not `const`?
+
+---
+## Preamble ✅
+## Memory Models and How To Use Them, and Why They Exist: 
+	- Manual Memory Management ✅
+	- Problems with Manual Memory Managment (C, Zig) ✅
+	- Garbage Collection (Java, Go, Python) ✅
+	- GC Gotchya's ✅
+	- Ownership and Read Write Permissions 1/2
+	- Shallow and Deep Copy
+	- Resource Acquisition Is Initialization (RAII) (C++)
+	- Reference Counting (C++, Switft, Rust)
+	- Ownership Based Resource Managment (OBRM) (Rust)
+	- A note on programming languages
+
+---
+## Advanced Topics: 
+### Generalizing to Other Resources: 
+	- Threads, fearless lock-free concurrency!
+	- Sockets
+	- Files
+### Allocators and Performence: 
+	- Contiguous Memory and why it Matters
+	- CPU Caching Notes
+	- Types of Allocators
+	- Heterogenous Computing
+---
+# Ownership
+- Who or what is responcible for memory?
+--
+
+- Whatever allocated memory is assigned too first is responcible for
+--
+
+	- Its lifetime (deallocation/deletion)
+--
+
+	- Managing it (managing access to it, saying who can or can not delete or change it)
+
+--
+- _If you allocated it you are responcible for it_
+
+---
+# Ownership Can Be Spread
+```c++
+int* myNumber = new int;
+int* counter = myNumber
+```
+- Both "own" the memory that was allocated to `myNumber`
+- Both can delete it
+--
+
+- But who _should_ delete it? 
+
+---
+# Ownership Does Not _Have_ to be Spread
+```c++
+int* myNumber = new int;
+const int* observer = myNumber;
+```
+
+- `observer` _can not_ delete the memory, but it _can_ read it
+
+---
+# C++ Read and Write with const (and References)
+- Read Write in C++ 0: https://godbolt.org/z/Ydnhx5d1n
+
+```c++
+void UpdatePlayer(const NESController& controller, Player& player) {
+    if(controller.up == true)
+        player.yVelocity += 1.f;
+}
+
+// Later ... 
+Player myPlayer;
+NESController myController;
+//...
+UpdatePlayer(myController, myPlayer); // Remember the parameter types!
+```
+- Look familiar?
+---
+# A Map Of Memory Models: 
+![alt text](Diagrams/Saftey0.drawio.svg)
+
+---
+# Imagine You Are a Game Engine Developer...
+- You are writing a particles system with where thousands of particles can be on screen at once
+- You need to write a function to simulate particle physics
+- What do you do?
+
+![alt text](Diagrams/Saftey0.drawio.svg)
+
+---
+## Preamble ✅
+## Memory Models and How To Use Them, and Why They Exist: 
+	- Manual Memory Management ✅
+	- Problems with Manual Memory Managment (C, Zig) ✅
+	- Garbage Collection (Java, Go, Python) ✅
+	- GC Gotchya's ✅
+	- Ownership and Read Write Permissions ✅
+	- Shallow and Deep Copy
+	- Resource Acquisition Is Initialization (RAII) (C++)
+	- Reference Counting (C++, Switft, Rust)
+	- Ownership Based Resource Managment (OBRM) (Rust)
+	- A note on programming languages
+
+---
+## Advanced Topics: 
+### Generalizing to Other Resources: 
+	- Threads, fearless lock-free concurrency!
+	- Sockets
+	- Files
+### Allocators and Performence: 
+	- Contiguous Memory and why it Matters
+	- CPU Caching Notes
+	- Types of Allocators
+	- Heterogenous Computing
+---
+Constructors and Destructors in C++ 0: https://godbolt.org/z/T14ed4rMr
+
+```c++
+class Greeter
+{
+    int number;
+    public: 
+        Greeter(int number_) { // like python __init__ or java constructor
+            number = number_;
+            std::cout << "Hello " << number << "\n";
+        }
+        ~Greeter() {
+            std::cout << "Goodbye " << number << "\n";
+        }
+};
+// Later ...
+{
+    Greeter greeter0(0);
+    {
+        Greeter greeter1(1);
+    }
+}
+```
+--
+
+- What is the output?
+--
+
+- Hello 0, Hello 1, Goodbye 1, Goodbye 0
+--
+
+- Its the stack!
+---
+# Keep it in your brain
+- Constructors and Destructors in C++ 0: https://godbolt.org/z/T14ed4rMr
+
+```c++
+class Greeter
+{
+    int number;
+    public: 
+        Greeter(int number_) { // like python __init__ or java constructor
+            number = number_;
+            std::cout << "Hello " << number << "\n";
+        }
+        ~Greeter() {
+            std::cout << "Goodbye " << number << "\n";
+        }
+};
+```
+---
+# Constructors and Memory Allocation
+- Greeter Allocate 0: https://godbolt.org/z/r45csen6q
+```c++
+{
+    Greeter* greeter = new Greeter(0);
+}
+```
+- What is the output?
+--
+
+- "Hello 0"
+--
+
+- Its a leak! (If it were not we would see "Goodbye 0")
+
+---
+# Constructors and Memory Allocation
+- Greeter Allocate 1: https://godbolt.org/z/cW7rK3rz5
+```c++
+Greeter* MakeGreeter(int number) {
+    Greeter greeter1(1);
+    return new Greeter(number);
+}
+//Later ...
+Greeter* greeter = MakeGreeter(0);
+delete greeter;
+```
+- What is the output?
+--
+
+- Hello 1, Hello 0, Goodbye 1, Goodbye 0
+
+--
+
+- Not a perfect stack!
+
+---
+# Do you understand constructors and destructors?
+## Questions on constructors?
+- Remember you may use godbolt + discord to send me questions
+
+---
+# Copy
+- Greeter Copy 0: https://godbolt.org/z/coojKG7vh
+```c++
+int SomeFunction(Greeter greeter) {
+    return 42;
+}
+// Later ...
+{
+    Greeter test(0);
+    SomeFunction(test);
+}
+```
+- What is the output
+--
+
+- Output: Hello 0, Goodbye 0, Goodbye 0
+
+---
+- Copy Constructor 0: https://godbolt.org/z/GdGW3a3d1
+
+```c++
+class Greeter
+{
+    int number;
+    public: 
+        Greeter(int number_) { // like python __init__ or java constructor
+            number = number_;
+            std::cout << "Hello " << number << "\n";
+        }
+        Greeter(const Greeter& other) {
+            number = other.number;
+            std::cout << "Copy " << number << "\n";
+        }
+        ~Greeter() {
+            std::cout << "Goodbye " << number << "\n";
+        }
+};
+```
+- Why is `other` `const`?
+
+---
+- Copy Constructor 0: https://godbolt.org/z/GdGW3a3d1
+
+```c++
+class Greeter
+{
+    int number;
+    public: 
+        Greeter(int number_) { // like python __init__ or java constructor
+            number = number_;
+            std::cout << "Hello " << number << "\n";
+        }
+        Greeter(const Greeter& other) {
+            number = other.number;
+            std::cout << "Copy " << number << "\n";
+        }
+        ~Greeter() {
+            std::cout << "Goodbye " << number << "\n";
+        }
+};
+int SomeFunction(Greeter greeter) {
+    return 42;
+}
+// Later in brackets... 
+Greeter test(0);
+SomeFunction(test);
+```
+- What is the output
+--
+
+---
+- Copy Constructor 0: https://godbolt.org/z/GdGW3a3d1
+```c++
+int SomeFunction(Greeter greeter) {
+    return 42;
+}
+// Later in brackets... 
+Greeter test(0);
+SomeFunction(test);
+```
+- What is the output
+
+--
+
+- Hello 0, Copy 0, Goodbye 0, Goodbye 0
+
+--
+
+- Remember before: Hello 0, Goodbye 0, Goodbye 0
+	- Make more sense now? Another greeter was constructed using the _copy constructor_
+
+--
+
+- We will come back to this example
+
+---
+# Smart Pointers
+- Smart pointers are classes that manage memory
+     - They are C++'s answer to all of its memory woes.
+'
+---
+# Lets Make a Smart Pointer!
+- Auto Pointer: https://godbolt.org/z/GbPsbddov
+```c++
+class AutoPointer
+{
+    Greeter* myGreeter;
+    public:
+        AutoPointer(int number) {
+            myGreeter = new Greeter(number);
+        }
+        ~AutoPointer() {
+            delete myGreeter;
+        }
+};
+// Later ...
+{
+    AutoPointer smartPointer(0);
+}
+```
+- What is the output
+--
+
+- Hello 0, Goodbye 0
+--
+
+- Woo hoo! 🎉 Problem solved right?
+--
+
+- Nope
+--
+, Chuck Testa
+
+---
+# Next Example
+- Auto Pointer 1: https://godbolt.org/z/edGWaT9nq
+
+---
+## Remember this example?
+```c++
+int SomeFunction(Greeter greeter) {
+    return 42;
+}
+// Later ...
+{
+    Greeter test(0);
+    SomeFunction(test);
+}
+```
+- Output: Hello 0, Copy 0, Goodbye 0, Goodbye 0
+- Lets try it with a smart pointer instead
+```c++
+int SomeFunction(AutoPointer greeter) {
+    return 42;
+} // Later ...
+{
+    AutoPointer smartPointer(0);
+    SomeFunction(smartPointer);
+}
+```
+- What is the output?
+--
+
+- free(): double free detected in tcache 2
+--
+, double free?!
+--
+Why?!
+---
+# Why double free: 
+```c++
+int SomeFunction(AutoPointer greeter) {
+    return 42;
+} // Later ...
+{
+    AutoPointer smartPointer(0);
+    SomeFunction(smartPointer);
+}
+```
+- Remember in the original example: 
+- Output: Hello 0, Copy 0, Goodbye 0, Goodbye 0
+- The same constructors/destructors get called on the `AutoPointer`
+	- The destructor calls `delete` so `delete` gets called twice! Double Free! Oh No!
+-- 
+	- Will we ever be _free_ of memory errors? 😏
+
+
+---
+# How About We Count Them, Reference Counting: `shared_ptr`
+```
+int UseShared(std::shared_ptr<Greeter> other) {
+    return 42;
+}
+// ... Later
+{
+	std::shared_ptr<Greeter> greeter(new Greeter(0));
+	UseShared(greeter);
+}
+```
+
+- Output: Hello 0, Goodbye 0
+
+---
+# Cyclic References
+```c++
+class Resource
+{
+public:
+	std::shared_ptr<Resource> m_ptr {}; // initially created empty
+	
+	Resource() { std::cout << "Resource acquired\n"; }
+	~Resource() { std::cout << "Resource destroyed\n"; }
+};
+{ // Later ...
+	auto ptr1 { std::make_shared<Resource>() };
+	ptr1->m_ptr = ptr1; // m_ptr is now sharing the Resource that contains it
+}
+```
+- Can be remiedied using non-owning `weak_ptr`
+- Thanks too: https://www.learncpp.com/cpp-tutorial/circular-dependency-issues-with-stdshared_ptr-and-stdweak_ptr/
+- I encourage reading the article
+
+---
+# Unique Pointer
+
+
+
+
+
+
+
+---
 --- 
 - JVM Image: https://www.bridgingpointsmedia.com/everything-about-java-virtual-machine/ 
 - Fly Swatter Image: https://www.gettyimages.com.au/detail/news-photo/july-2018-berlin-germany-a-person-is-holding-a-fly-swatter-news-photo/1000971736 
 - Not in my house GIF: https://media.tenor.com/Iz9dTGGgtVEAAAAC/not-in-my-house.gif
+- Picture of Tony Hoare https://en.wikipedia.org/wiki/Tony_Hoare
+- Hoare, Tony (2009). "Null References: The Billion Dollar Mistake" (Presentation abstract). QCon London. Archived from the original on 28 June 2009
+- Chmod Calculator: https://linuxhandbook.com/chmod-calculator/
+- JSLinux: https://bellard.org/jslinux/
+- Lunapic https://www7.lunapic.com/editor/
+- NES Controller: http://www.twobuttoncrew.com/2016/08/14/ranking-all-nintendo-controllers/
 
 </textarea>
     <script src="https://remarkjs.com/downloads/remark-latest.min.js">
